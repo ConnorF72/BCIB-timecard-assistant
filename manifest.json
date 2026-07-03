@@ -1,16 +1,39 @@
 {
-	"manifest_version": 3,
-	"name": "BCIB Timecard Assistant",
-	"version": "1.0",
+    "manifest_version": 3,
+    "name": "BCIB Timecard Assistant",
+    "version": "1.0",
 
-	"action": {
-		"default_popup": "popup.html"
-	},
+    "permissions": [
+        "tabs"
+    ],
 
-	"content_scripts": [
-		{
-			"matches": ["https://www.fdtpro.com/fdtpro_v_bc_100/main.php"],
-			"js": ["content.js"]
-		}
-	]
+    "host_permissions": [
+        "https://www.fdtpro.com/*"
+    ],
+
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "logos/houle-logo.png",
+            "48": "logos/houle-logo.png",
+            "128": "logos/houle-logo.png"
+        }
+    },
+
+    "icons": {
+        "16": "logos/houle-logo.png",
+        "48": "logos/houle-logo.png",
+        "128": "logos/houle-logo.png"
+    },
+
+    "content_scripts": [
+        {
+            "matches": [
+                "https://www.fdtpro.com/*"
+            ],
+            "js": [
+                "content.js"
+            ]
+        }
+    ]
 }
