@@ -1,0 +1,16 @@
+{
+	"manifest_version": 3,
+	"name": "BCIB Timecard Assistant",
+	"version": "1.0",
+
+	"action": {
+		"default_popup": "popup.html"
+	},
+
+	"content_scripts": [
+		{
+			"matches": ["https://www.fdtpro.com/fdtpro_v_bc_100/main.php"],
+			"js": ["content.js"]
+		}
+	]
+}

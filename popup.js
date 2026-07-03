@@ -2,14 +2,15 @@ const timecardsButton = document.getElementById("timecards-btn");
 const sickDaysButton = document.getElementById("sickdays-btn");
 const daysOffButton = document.getElementById("daysoff-btn");
 
+
 timecardsButton.addEventListener("click", () => {
-	alert("Timecards button clicked!");
+	window.location.href = "timecards.html"
 });
 
 sickDaysButton.addEventListener("click", () => {
-	alert("Sick days button clicked!");
+	window.location.href = "sickdays.html"
 });
 
 daysOffButton.addEventListener("click", () => {
-	alert("Days off button clicked!");
+	window.location.href = "daysoff.html"
 });
