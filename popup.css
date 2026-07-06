@@ -9,6 +9,11 @@ h1 {
 	font-size: 40px;
 }
 
+p {
+	font-size: 16px;
+	line-height: 2;
+}
+
 button {
 	display: block;
 	font-weight: bold;
@@ -48,9 +53,22 @@ button {
 	margin-left: 72px;
 }
 
+#add-nicknames-btn {
+	margin-top: 10px;
+	margin-left: 72px;
+}
+
 #back-btn {
 	margin-top: 10px;
 	margin-left: 72px;
+}
+
+
+#nickname-map {
+    font-size: 18px;
+    font-family: Consolas, monospace;
+    line-height: 1.6;
+    padding: 10px;
 }
 
 textarea {

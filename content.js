@@ -1,37 +1,64 @@
 const START_TIME = "07:00";
 const MEAL_BREAK_MIN = 30;
 
-const NICKNAME_MAP = {
-    mike: "michael",
-    nick: "nicholas",
-    nate: "nathaniel",
-    nathan: "nathaniel",
-    claire: "ivy",
-    bob: "robert",
-    rob: "robert",
-    ben: "benjamin",
-    will: "william",
-    bill: "william",
-    rich: "richard",
-    chris: "christopher",
-    dave: "david",
-    jenn: "jennifer",
-    jen: "jennifer",
-    doug: "douglas",
-    matt: "matthew",
-    dan: "daniel",
-    ron: "ronald",
-    ray: "raymond",
-    josh: "joshua",
-    carson: "robert",
-    katie: "katharine",
-    cole: "adam",
-    annette: "yvonne",
-    chad: "donald",
-    maegen: "maegan"
-};
+function parseNicknameMap(text) {
 
-function normalizeName(str) {
+    const map = {};
+
+    text
+        .split("\n")
+        .forEach(line => {
+
+            const trimmed =
+                line.trim();
+
+            if (!trimmed) {
+                return;
+            }
+
+            const parts =
+                trimmed.split("=");
+
+            if (parts.length !== 2) {
+                return;
+            }
+
+            const nickname =
+                parts[0]
+                    .trim()
+                    .toLowerCase();
+
+            const canonical =
+                parts[1]
+                    .trim()
+                    .toLowerCase();
+
+            map[nickname] =
+                canonical;
+
+        });
+
+    return map;
+
+}
+
+async function getNicknameMap() {
+
+    const result =
+        await chrome.storage.local.get(
+            "nicknameMapText"
+        );
+
+    return parseNicknameMap(
+        result.nicknameMapText || ""
+    );
+
+}
+
+function normalizeName(
+    str,
+    nicknameMap
+) {
 
     const cleaned = str
         .toLowerCase()
@@ -39,21 +66,25 @@ function normalizeName(str) {
         .replace(/\s+/g, " ")
         .trim();
 
-    const parts = cleaned.split(" ");
+    const parts =
+        cleaned.split(" ");
 
     if (parts.length < 2) {
         return cleaned;
     }
 
-    const firstName = parts[0];
+    const firstName =
+        parts[0];
+
     const lastName =
         parts[parts.length - 1];
 
     const canonicalFirst =
-        NICKNAME_MAP[firstName] ||
+        nicknameMap[firstName] ||
         firstName;
 
     return `${canonicalFirst} ${lastName}`;
+
 }
 
 function timeToMinutes(t) {
@@ -62,6 +93,7 @@ function timeToMinutes(t) {
         t.split(":").map(Number);
 
     return h * 60 + m;
+
 }
 
 function minutesToTime(mins) {
@@ -77,10 +109,11 @@ function minutesToTime(mins) {
             .padStart(2, "0");
 
     return `${h}:${m}`;
+
 }
 
 chrome.runtime.onMessage.addListener(
-    (message) => {
+    message => {
 
         console.log(
             "Received message:",
@@ -95,34 +128,40 @@ chrome.runtime.onMessage.addListener(
             runTimecardAutomation(
                 message.data
             );
+
         }
 
-	
-	if (message.action === "daysoff") {
+        if (
+            message.action ===
+            "daysoff"
+        ) {
 
-    		runDaysOffAutomation(
-        	message.data
-    	);
+            runDaysOffAutomation(
+                message.data
+            );
 
-}
+        }
 
+        if (
+            message.action ===
+            "sickdays"
+        ) {
 
-if (message.action === "sickdays") {
+            runSickDaysAutomation(
+                message.data
+            );
 
-    runSickDaysAutomation(
-        message.data
-    );
-
-}
-
-
+        }
 
     }
 );
 
-function runTimecardAutomation(
+async function runTimecardAutomation(
     pivotHours
 ) {
+
+    const nicknameMap =
+        await getNicknameMap();
 
     console.log(
         "Starting automation..."
@@ -152,7 +191,8 @@ function runTimecardAutomation(
 
             const employeeKey =
                 normalizeName(
-                    employeeName
+                    employeeName,
+                    nicknameMap
                 );
 
             if (
@@ -175,9 +215,11 @@ function runTimecardAutomation(
                 !startInput ||
                 !endInput
             ) {
+
                 console.log(
                     `Could not locate time fields for ${employeeKey}`
                 );
+
                 return;
             }
 
@@ -185,15 +227,18 @@ function runTimecardAutomation(
                 startInput.value ||
                 endInput.value
             ) {
+
                 console.log(
                     `Skipping ${employeeKey} (already populated)`
                 );
+
                 return;
             }
 
             const workMinutes =
-                pivotHours[employeeKey] *
-                    60 +
+                pivotHours[
+                    employeeKey
+                ] * 60 +
                 MEAL_BREAK_MIN;
 
             const endTime =
@@ -201,7 +246,7 @@ function runTimecardAutomation(
                     timeToMinutes(
                         START_TIME
                     ) +
-                        workMinutes
+                    workMinutes
                 );
 
             console.log(
@@ -246,11 +291,15 @@ function runTimecardAutomation(
     console.log(
         "Timesheet auto-fill complete."
     );
+
 }
 
-function runDaysOffAutomation(
+async function runDaysOffAutomation(
     offList
 ) {
+
+    const nicknameMap =
+        await getNicknameMap();
 
     const offSet =
         new Set(offList);
@@ -278,7 +327,10 @@ function runDaysOffAutomation(
                 .split(" (")[0];
 
             const employeeKey =
-                normalizeName(pageName);
+                normalizeName(
+                    pageName,
+                    nicknameMap
+                );
 
             if (
                 !offSet.has(employeeKey)
@@ -378,13 +430,15 @@ function runDaysOffAutomation(
 
 }
 
-function runSickDaysAutomation(
+async function runSickDaysAutomation(
     sickList
 ) {
 
+    const nicknameMap =
+        await getNicknameMap();
+
     const START_TIME = "07:00";
     const SICK_HOURS = 8;
-    const MEAL_BREAK_MIN = 30;
     const SICK_TYPE_VALUE = "823";
 
     const sickSet =
@@ -413,7 +467,10 @@ function runSickDaysAutomation(
                 .split(" (")[0];
 
             const employeeKey =
-                normalizeName(pageName);
+                normalizeName(
+                    pageName,
+                    nicknameMap
+                );
 
             if (
                 !sickSet.has(employeeKey)
@@ -460,9 +517,11 @@ function runSickDaysAutomation(
                 !endInput ||
                 !typeSelect
             ) {
+
                 console.log(
                     `Missing fields for ${employeeKey}`
                 );
+
                 return;
             }
 
@@ -496,25 +555,32 @@ function runSickDaysAutomation(
                 comment.value = "Sick";
             }
 
-           
-startInput.dispatchEvent(
-    new Event("input", {
-        bubbles: true
-    })
-);
+            startInput.dispatchEvent(
+                new Event(
+                    "input",
+                    {
+                        bubbles: true
+                    }
+                )
+            );
 
-endInput.dispatchEvent(
-    new Event("input", {
-        bubbles: true
-    })
-);
+            endInput.dispatchEvent(
+                new Event(
+                    "input",
+                    {
+                        bubbles: true
+                    }
+                )
+            );
 
-endInput.dispatchEvent(
-    new Event("change", {
-        bubbles: true
-    })
-);
-
+            endInput.dispatchEvent(
+                new Event(
+                    "change",
+                    {
+                        bubbles: true
+                    }
+                )
+            );
 
             typeSelect.dispatchEvent(
                 new Event(
@@ -556,4 +622,5 @@ endInput.dispatchEvent(
     console.log(
         "Sick days applied."
     );
+
 }
