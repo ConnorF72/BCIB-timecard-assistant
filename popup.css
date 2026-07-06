@@ -26,18 +26,31 @@ button {
 	width: 250px;
 	padding: 20px;
 	margin: 10px auto;
-	margin-top: 90px;
+	margin-top: 60px;
 }
 
 #daysoff-btn {
 	width: 250px;
 	padding: 20px;
 	margin: 10px auto;
-	margin-top: 90px;
+	margin-top: 60px;
+}
+
+#settings-btn {
+	width: 250px;
+	padding: 20px;
+	margin: 10px auto;
+	margin-top: 60px;
 }
 
 #submit-timecards-btn {
 	margin-top: 10px;
+	margin-left: 72px;
+}
+
+#back-btn {
+	margin-top: 10px;
+	margin-left: 72px;
 }
 
 textarea {
@@ -46,6 +59,11 @@ textarea {
 }
 
 .timecard-form {
+	width: 800px;
+	margin: 0 auto;
+}
+
+.nickname-map {
 	width: 800px;
 	margin: 0 auto;
 }
