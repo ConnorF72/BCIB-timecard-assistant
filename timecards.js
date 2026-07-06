@@ -1,4 +1,4 @@
-  const NICKNAME_MAP = {
+const NICKNAME_MAP = {
     mike: "michael",
     nick: "nicholas",
     nate: "nathaniel",
@@ -26,80 +26,109 @@
     annette: "yvonne",
     chad: "donald",
     maegen: "maegan"
-  };
-
-function submitTimecards() {
-
-	if (Object.keys(NICKNAME_MAP).length === 0) {
-        alert("Nickname map not loaded yet.");
-        return;
-    	}
-
-	const data = 
-		document.getElementById("pivot-data").value;
-
-	const lines = data
-		.split("\n")
-		.map(line => line.trim())
-		.filter(Boolean);
-
-	const pivotHours = {};
-	
-	lines.forEach(line => {
-		const parts = line.split(/\t| {2,}/);
-
-		const rawName = parts[0];
-		const hours = parseFloat(parts[parts.length - 1]);
-		
-		if (rawName && !isNaN(hours)) {
-			pivotHours[normalizeName(rawName)] = hours;
-		}
-	});
-
-	console.log(pivotHours);
-
-	alert(
-    		`Loaded ${Object.keys(pivotHours).length} employees`
-	);
-	
-	runTimecardAutomation(pivotHours);
-}
+};
 
 function normalizeName(str) {
     const cleaned = str
-      .toLowerCase()
-      .replace(/\(.*?\)/g, "") 
-      .replace(/\s+/g, " ")    
-      .trim();
+        .toLowerCase()
+        .replace(/\(.*?\)/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
 
-      const parts = cleaned.split(" ");
-      if (parts.length < 2) return cleaned;
+    const parts = cleaned.split(" ");
 
-      const firstName = parts[0];
-      const lastName = parts[parts.length - 1];
+    if (parts.length < 2) {
+        return cleaned;
+    }
 
-	const canonicalFirst = 
-        NICKNAME_MAP[firstName] || firstName
+    const firstName = parts[0];
+    const lastName = parts[parts.length - 1];
 
-      return `${canonicalFirst} ${lastName}`;
+    const canonicalFirst =
+        NICKNAME_MAP[firstName] || firstName;
+
+    return `${canonicalFirst} ${lastName}`;
 }
 
-function runTimecardAutomation(pivotHours) {
-	const employeeRows =
-		document.querySelectorAll("tr");
+function submitTimecards() {
 
-	console.log(
-		`Found ${employeeRows.length} rows`
-	);
+    const data =
+        document.getElementById("pivot-data").value;
+
+    const lines = data
+        .split("\n")
+        .map(line => line.trim())
+        .filter(Boolean);
+
+    const pivotHours = {};
+
+    lines.forEach(line => {
+
+        const parts =
+            line.split(/\t| {2,}/);
+
+        const rawName = parts[0];
+
+        const hours =
+            parseFloat(
+                parts[parts.length - 1]
+            );
+
+        if (
+            rawName &&
+            !isNaN(hours)
+        ) {
+            pivotHours[
+                normalizeName(rawName)
+            ] = hours;
+        }
+
+    });
+
+    console.log(
+        JSON.stringify(
+            pivotHours,
+            null,
+            2
+        )
+    );
+
+    alert(
+        `Loaded ${Object.keys(pivotHours).length} employees`
+    );
+
+    chrome.tabs.query(
+        {
+            active: true,
+            currentWindow: true
+        },
+        tabs => {
+
+            chrome.tabs.sendMessage(
+                tabs[0].id,
+                {
+                    action: "timecards",
+                    data: pivotHours
+                }
+            );
+
+        }
+    );
 }
+
 document
-	.getElementById("submit-timecards-btn")
-	.addEventListener("click", submitTimecards);
+    .getElementById("submit-timecards-btn")
+    .addEventListener(
+        "click",
+        submitTimecards
+    );
 
-const backButton = document.getElementById("back-btn");
-
-backButton.addEventListener("click", () => {
-	window.location.href = "popup.html"
-});
-
-
+document
+    .getElementById("back-btn")
+    .addEventListener(
+        "click",
+        () => {
+            window.location.href =
+                "popup.html";
+        }
+    );

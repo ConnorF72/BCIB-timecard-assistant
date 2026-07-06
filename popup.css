@@ -19,7 +19,7 @@ button {
 	width: 250px;
 	padding: 20px;
 	margin: 10px auto;
-	margin-top: 90px;
+	margin-top: 60px;
 }
 
 #sickdays-btn {
@@ -42,7 +42,7 @@ button {
 
 textarea {
 	width: 80%;
-	height: 600px;
+	height: 300px;
 }
 
 .timecard-form {
@@ -52,7 +52,7 @@ textarea {
 
 .logo-container {
 	width: auto;
-	margin-top: 150px;
+	margin-top: 65px;
 }
 
 .bcib-logo {
