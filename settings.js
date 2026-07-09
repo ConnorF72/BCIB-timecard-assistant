@@ -1,6 +1,4 @@
 const textarea = document.getElementById("nickname-map");
-
-
 const DEFAULT_MAP = `alex     = alexander
 andy     = andrew
 annette  = yvonne
@@ -79,54 +77,26 @@ tony     = anthony
 will     = william
 willy    = william`;
 
+chrome.storage.local.get("nicknameMapText", result => {
+    console.log(result);
 
-chrome.storage.local.get(
-    "nicknameMapText",
-    result => {
-
-	console.log(result);
-
-        if (!result.nicknameMapText) {
-
-            textarea.value = DEFAULT_MAP;
-
-            chrome.storage.local.set({
-                nicknameMapText:
-                    DEFAULT_MAP
-            });
-
-        } else {
-
-            textarea.value =
-                result.nicknameMapText;
-
-        }
-
+    if (!result.nicknameMapText) {
+        textarea.value = DEFAULT_MAP;
+        chrome.storage.local.set({ nicknameMapText: DEFAULT_MAP });
+    } else {
+        textarea.value = result.nicknameMapText;
     }
-);
-
-
-function saveNicknameMap() {
-chrome.storage.local.set({
-    nicknameMapText: textarea.value
 });
 
-	alert("Saved!");
+function saveNicknameMap() {
+    chrome.storage.local.set({ nicknameMapText: textarea.value });
+    alert("Saved!");
 }
 
 document
     .getElementById("add-nicknames-btn")
-    .addEventListener(
-        "click",
-        saveNicknameMap
-    );
+    .addEventListener("click", saveNicknameMap);
 
-document
-    .getElementById("back-btn")
-    .addEventListener(
-        "click",
-        () => {
-            window.location.href =
-                "popup.html";
-        }
-    );
+document.getElementById("back-btn").addEventListener("click", () => {
+    window.location.href = "popup.html";
+});
