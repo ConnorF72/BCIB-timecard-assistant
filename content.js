@@ -2,625 +2,215 @@ const START_TIME = "07:00";
 const MEAL_BREAK_MIN = 30;
 
 function parseNicknameMap(text) {
-
     const map = {};
 
-    text
-        .split("\n")
-        .forEach(line => {
+    text.split("\n").forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
 
-            const trimmed =
-                line.trim();
+        const parts = trimmed.split("=");
+        if (parts.length !== 2) return;
 
-            if (!trimmed) {
-                return;
-            }
+        const nickname = parts[0].trim().toLowerCase();
+        const canonical = parts[1].trim().toLowerCase();
 
-            const parts =
-                trimmed.split("=");
-
-            if (parts.length !== 2) {
-                return;
-            }
-
-            const nickname =
-                parts[0]
-                    .trim()
-                    .toLowerCase();
-
-            const canonical =
-                parts[1]
-                    .trim()
-                    .toLowerCase();
-
-            map[nickname] =
-                canonical;
-
-        });
+        map[nickname] = canonical;
+    });
 
     return map;
-
 }
 
 async function getNicknameMap() {
-
-    const result =
-        await chrome.storage.local.get(
-            "nicknameMapText"
-        );
-
-    return parseNicknameMap(
-        result.nicknameMapText || ""
-    );
-
+    const result = await chrome.storage.local.get("nicknameMapText");
+    return parseNicknameMap(result.nicknameMapText || "");
 }
 
-function normalizeName(
-    str,
-    nicknameMap
-) {
-
+function normalizeName(str, nicknameMap) {
     const cleaned = str
         .toLowerCase()
         .replace(/\(.*?\)/g, "")
         .replace(/\s+/g, " ")
         .trim();
 
-    const parts =
-        cleaned.split(" ");
+    const parts = cleaned.split(" ");
+    if (parts.length < 2) return cleaned;
 
-    if (parts.length < 2) {
-        return cleaned;
-    }
-
-    const firstName =
-        parts[0];
-
-    const lastName =
-        parts[parts.length - 1];
-
-    const canonicalFirst =
-        nicknameMap[firstName] ||
-        firstName;
+    const firstName = parts[0];
+    const lastName = parts[parts.length - 1];
+    const canonicalFirst = nicknameMap[firstName] || firstName;
 
     return `${canonicalFirst} ${lastName}`;
-
 }
 
 function timeToMinutes(t) {
-
-    const [h, m] =
-        t.split(":").map(Number);
-
+    const [h, m] = t.split(":").map(Number);
     return h * 60 + m;
-
 }
 
 function minutesToTime(mins) {
-
-    const h =
-        Math.floor(mins / 60)
-            .toString()
-            .padStart(2, "0");
-
-    const m =
-        (mins % 60)
-            .toString()
-            .padStart(2, "0");
-
+    const h = Math.floor(mins / 60).toString().padStart(2, "0");
+    const m = (mins % 60).toString().padStart(2, "0");
     return `${h}:${m}`;
-
 }
 
-chrome.runtime.onMessage.addListener(
-    message => {
+chrome.runtime.onMessage.addListener(message => {
+    console.log("Received message:", message);
 
-        console.log(
-            "Received message:",
-            message
-        );
-
-        if (
-            message.action ===
-            "timecards"
-        ) {
-
-            runTimecardAutomation(
-                message.data
-            );
-
-        }
-
-        if (
-            message.action ===
-            "daysoff"
-        ) {
-
-            runDaysOffAutomation(
-                message.data
-            );
-
-        }
-
-        if (
-            message.action ===
-            "sickdays"
-        ) {
-
-            runSickDaysAutomation(
-                message.data
-            );
-
-        }
-
+    if (message.action === "timecards") {
+        runTimecardAutomation(message.data);
     }
-);
 
-async function runTimecardAutomation(
-    pivotHours
-) {
+    if (message.action === "daysoff") {
+        runDaysOffAutomation(message.data);
+    }
 
-    const nicknameMap =
-        await getNicknameMap();
+    if (message.action === "sickdays") {
+        runSickDaysAutomation(message.data);
+    }
+});
 
-    console.log(
-        "Starting automation..."
-    );
+async function runTimecardAutomation(pivotHours) {
+    const nicknameMap = await getNicknameMap();
 
-    document
-        .querySelectorAll("tr")
-        .forEach(row => {
+    console.log("Starting automation...");
 
-            const empSelect =
-                row.querySelector(
-                    'select[id$="_emp"]'
-                );
+    document.querySelectorAll("tr").forEach(row => {
+        const empSelect = row.querySelector('select[id$="_emp"]');
+        if (!empSelect || empSelect.selectedIndex <= 0) return;
 
-            if (
-                !empSelect ||
-                empSelect.selectedIndex <= 0
-            ) {
-                return;
-            }
+        const employeeName = empSelect.options[empSelect.selectedIndex].text.split(" (")[0];
+        const employeeKey = normalizeName(employeeName, nicknameMap);
 
-            const employeeName =
-                empSelect.options[
-                    empSelect.selectedIndex
-                ].text
-                .split(" (")[0];
+        if (!(employeeKey in pivotHours)) return;
 
-            const employeeKey =
-                normalizeName(
-                    employeeName,
-                    nicknameMap
-                );
+        const startInput = row.querySelector('input[id$="_tr"]');
+        const endInput = row.querySelector('input[id$="_tr_to"]');
 
-            if (
-                !(employeeKey in pivotHours)
-            ) {
-                return;
-            }
+        if (!startInput || !endInput) {
+            console.log(`Could not locate time fields for ${employeeKey}`);
+            return;
+        }
 
-            const startInput =
-                row.querySelector(
-                    'input[id$="_tr"]'
-                );
+        if (startInput.value || endInput.value) {
+            console.log(`Skipping ${employeeKey} (already populated)`);
+            return;
+        }
 
-            const endInput =
-                row.querySelector(
-                    'input[id$="_tr_to"]'
-                );
+        const workMinutes = pivotHours[employeeKey] * 60 + MEAL_BREAK_MIN;
+        const endTime = minutesToTime(timeToMinutes(START_TIME) + workMinutes);
 
-            if (
-                !startInput ||
-                !endInput
-            ) {
+        console.log(`Filling ${employeeKey}: ${START_TIME} -> ${endTime}`);
 
-                console.log(
-                    `Could not locate time fields for ${employeeKey}`
-                );
+        startInput.value = START_TIME;
+        endInput.value = endTime;
 
-                return;
-            }
+        startInput.dispatchEvent(new Event("input", { bubbles: true }));
+        endInput.dispatchEvent(new Event("input", { bubbles: true }));
+        endInput.dispatchEvent(new Event("change", { bubbles: true }));
+    });
 
-            if (
-                startInput.value ||
-                endInput.value
-            ) {
-
-                console.log(
-                    `Skipping ${employeeKey} (already populated)`
-                );
-
-                return;
-            }
-
-            const workMinutes =
-                pivotHours[
-                    employeeKey
-                ] * 60 +
-                MEAL_BREAK_MIN;
-
-            const endTime =
-                minutesToTime(
-                    timeToMinutes(
-                        START_TIME
-                    ) +
-                    workMinutes
-                );
-
-            console.log(
-                `Filling ${employeeKey}: ${START_TIME} -> ${endTime}`
-            );
-
-            startInput.value =
-                START_TIME;
-
-            endInput.value =
-                endTime;
-
-            startInput.dispatchEvent(
-                new Event(
-                    "input",
-                    {
-                        bubbles: true
-                    }
-                )
-            );
-
-            endInput.dispatchEvent(
-                new Event(
-                    "input",
-                    {
-                        bubbles: true
-                    }
-                )
-            );
-
-            endInput.dispatchEvent(
-                new Event(
-                    "change",
-                    {
-                        bubbles: true
-                    }
-                )
-            );
-
-        });
-
-    console.log(
-        "Timesheet auto-fill complete."
-    );
-
+    console.log("Timesheet auto-fill complete.");
 }
 
-async function runDaysOffAutomation(
-    offList
-) {
+async function runDaysOffAutomation(offList) {
+    const nicknameMap = await getNicknameMap();
+    const offSet = new Set(offList);
 
-    const nicknameMap =
-        await getNicknameMap();
+    document.querySelectorAll("tr").forEach(row => {
+        const empSelect = row.querySelector('select[id$="_emp"]');
+        if (!empSelect || empSelect.selectedIndex <= 0) return;
 
-    const offSet =
-        new Set(offList);
+        const pageName = empSelect.options[empSelect.selectedIndex].text.split(" (")[0];
+        const employeeKey = normalizeName(pageName, nicknameMap);
 
-    document
-        .querySelectorAll("tr")
-        .forEach(row => {
+        if (!offSet.has(employeeKey)) return;
 
-            const empSelect =
-                row.querySelector(
-                    'select[id$="_emp"]'
-                );
+        console.log(`Applying day off to ${employeeKey}`);
 
-            if (
-                !empSelect ||
-                empSelect.selectedIndex <= 0
-            ) {
-                return;
-            }
+        const dnwCheckbox = row.querySelector('input[type="checkbox"][id$="_dnw_display"]');
+        const travelType = row.querySelector('select[id$="_tt"]');
+        const travelAmount = row.querySelector('input[id$="_travamt"]');
+        const comment = row.querySelector('textarea[id$="_com"]');
 
-            const pageName =
-                empSelect.options[
-                    empSelect.selectedIndex
-                ].text
-                .split(" (")[0];
+        if (dnwCheckbox) {
+            dnwCheckbox.checked = true;
+            dnwCheckbox.dispatchEvent(new Event("change", { bubbles: true }));
+        }
 
-            const employeeKey =
-                normalizeName(
-                    pageName,
-                    nicknameMap
-                );
+        if (travelType) {
+            travelType.value = "0";
+            travelType.dispatchEvent(new Event("change", { bubbles: true }));
+        }
 
-            if (
-                !offSet.has(employeeKey)
-            ) {
-                return;
-            }
+        if (travelAmount) {
+            travelAmount.value = "";
+            travelAmount.dispatchEvent(new Event("input", { bubbles: true }));
+        }
 
-            console.log(
-                `Applying day off to ${employeeKey}`
-            );
+        if (comment) {
+            comment.value = "Off";
+            comment.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+    });
 
-            const dnwCheckbox =
-                row.querySelector(
-                    'input[type="checkbox"][id$="_dnw_display"]'
-                );
-
-            const travelType =
-                row.querySelector(
-                    'select[id$="_tt"]'
-                );
-
-            const travelAmount =
-                row.querySelector(
-                    'input[id$="_travamt"]'
-                );
-
-            const comment =
-                row.querySelector(
-                    'textarea[id$="_com"]'
-                );
-
-            if (dnwCheckbox) {
-
-                dnwCheckbox.checked = true;
-
-                dnwCheckbox.dispatchEvent(
-                    new Event(
-                        "change",
-                        {
-                            bubbles: true
-                        }
-                    )
-                );
-
-            }
-
-            if (travelType) {
-
-                travelType.value = "0";
-
-                travelType.dispatchEvent(
-                    new Event(
-                        "change",
-                        {
-                            bubbles: true
-                        }
-                    )
-                );
-
-            }
-
-            if (travelAmount) {
-
-                travelAmount.value = "";
-
-                travelAmount.dispatchEvent(
-                    new Event(
-                        "input",
-                        {
-                            bubbles: true
-                        }
-                    )
-                );
-
-            }
-
-            if (comment) {
-
-                comment.value = "Off";
-
-                comment.dispatchEvent(
-                    new Event(
-                        "input",
-                        {
-                            bubbles: true
-                        }
-                    )
-                );
-
-            }
-
-        });
-
-    console.log(
-        "Day-off entries applied."
-    );
-
+    console.log("Day-off entries applied.");
 }
 
-async function runSickDaysAutomation(
-    sickList
-) {
-
-    const nicknameMap =
-        await getNicknameMap();
+async function runSickDaysAutomation(sickList) {
+    const nicknameMap = await getNicknameMap();
 
     const START_TIME = "07:00";
     const SICK_HOURS = 8;
     const SICK_TYPE_VALUE = "823";
 
-    const sickSet =
-        new Set(sickList);
+    const sickSet = new Set(sickList);
 
-    document
-        .querySelectorAll("tr")
-        .forEach(row => {
+    document.querySelectorAll("tr").forEach(row => {
+        const empSelect = row.querySelector('select[id$="_emp"]');
+        if (!empSelect || empSelect.selectedIndex <= 0) return;
 
-            const empSelect =
-                row.querySelector(
-                    'select[id$="_emp"]'
-                );
+        const pageName = empSelect.options[empSelect.selectedIndex].text.split(" (")[0];
+        const employeeKey = normalizeName(pageName, nicknameMap);
 
-            if (
-                !empSelect ||
-                empSelect.selectedIndex <= 0
-            ) {
-                return;
-            }
+        if (!sickSet.has(employeeKey)) return;
 
-            const pageName =
-                empSelect.options[
-                    empSelect.selectedIndex
-                ].text
-                .split(" (")[0];
+        console.log(`Applying sick day to ${employeeKey}`);
 
-            const employeeKey =
-                normalizeName(
-                    pageName,
-                    nicknameMap
-                );
+        const startInput = row.querySelector('input[id$="_tr"]');
+        const endInput = row.querySelector('input[id$="_tr_to"]');
+        const typeSelect = row.querySelector('select[id$="_th"]');
+        const travelType = row.querySelector('select[id$="_tt"]');
+        const travelAmount = row.querySelector('input[id$="_travamt"]');
+        const comment = row.querySelector('textarea[id$="_com"]');
 
-            if (
-                !sickSet.has(employeeKey)
-            ) {
-                return;
-            }
+        if (!startInput || !endInput || !typeSelect) {
+            console.log(`Missing fields for ${employeeKey}`);
+            return;
+        }
 
-            console.log(
-                `Applying sick day to ${employeeKey}`
-            );
+        const endMinutes = timeToMinutes(START_TIME) + (SICK_HOURS * 60) + MEAL_BREAK_MIN;
 
-            const startInput =
-                row.querySelector(
-                    'input[id$="_tr"]'
-                );
+        startInput.value = START_TIME;
+        endInput.value = minutesToTime(endMinutes);
+        typeSelect.value = SICK_TYPE_VALUE;
 
-            const endInput =
-                row.querySelector(
-                    'input[id$="_tr_to"]'
-                );
+        if (travelType) travelType.value = "0";
+        if (travelAmount) travelAmount.value = "";
+        if (comment) comment.value = "Sick";
 
-            const typeSelect =
-                row.querySelector(
-                    'select[id$="_th"]'
-                );
+        startInput.dispatchEvent(new Event("input", { bubbles: true }));
+        endInput.dispatchEvent(new Event("input", { bubbles: true }));
+        endInput.dispatchEvent(new Event("change", { bubbles: true }));
+        typeSelect.dispatchEvent(new Event("change", { bubbles: true }));
 
-            const travelType =
-                row.querySelector(
-                    'select[id$="_tt"]'
-                );
+        if (travelType) {
+            travelType.dispatchEvent(new Event("change", { bubbles: true }));
+        }
 
-            const travelAmount =
-                row.querySelector(
-                    'input[id$="_travamt"]'
-                );
+        if (comment) {
+            comment.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+    });
 
-            const comment =
-                row.querySelector(
-                    'textarea[id$="_com"]'
-                );
-
-            if (
-                !startInput ||
-                !endInput ||
-                !typeSelect
-            ) {
-
-                console.log(
-                    `Missing fields for ${employeeKey}`
-                );
-
-                return;
-            }
-
-            const endMinutes =
-                timeToMinutes(
-                    START_TIME
-                ) +
-                (SICK_HOURS * 60) +
-                MEAL_BREAK_MIN;
-
-            startInput.value =
-                START_TIME;
-
-            endInput.value =
-                minutesToTime(
-                    endMinutes
-                );
-
-            typeSelect.value =
-                SICK_TYPE_VALUE;
-
-            if (travelType) {
-                travelType.value = "0";
-            }
-
-            if (travelAmount) {
-                travelAmount.value = "";
-            }
-
-            if (comment) {
-                comment.value = "Sick";
-            }
-
-            startInput.dispatchEvent(
-                new Event(
-                    "input",
-                    {
-                        bubbles: true
-                    }
-                )
-            );
-
-            endInput.dispatchEvent(
-                new Event(
-                    "input",
-                    {
-                        bubbles: true
-                    }
-                )
-            );
-
-            endInput.dispatchEvent(
-                new Event(
-                    "change",
-                    {
-                        bubbles: true
-                    }
-                )
-            );
-
-            typeSelect.dispatchEvent(
-                new Event(
-                    "change",
-                    {
-                        bubbles: true
-                    }
-                )
-            );
-
-            if (travelType) {
-
-                travelType.dispatchEvent(
-                    new Event(
-                        "change",
-                        {
-                            bubbles: true
-                        }
-                    )
-                );
-
-            }
-
-            if (comment) {
-
-                comment.dispatchEvent(
-                    new Event(
-                        "input",
-                        {
-                            bubbles: true
-                        }
-                    )
-                );
-
-            }
-
-        });
-
-    console.log(
-        "Sick days applied."
-    );
-
+    console.log("Sick days applied.");
 }
