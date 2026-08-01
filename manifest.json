@@ -1,11 +1,11 @@
 {
     "manifest_version": 3,
     "name": "BCIB Timecard Assistant",
-    "version": "1.0",
+    "version": "1.3",
 
     "permissions": [
         "tabs",
-	   "storage"
+        "storage"
     ],
 
     "host_permissions": [
@@ -13,7 +13,7 @@
     ],
 
     "action": {
-        "default_popup": "popup.html",
+        "default_popup": "popup/popup.html",
         "default_icon": {
             "16": "logos/houle-logo.png",
             "48": "logos/houle-logo.png",
@@ -33,7 +33,8 @@
                 "https://www.fdtpro.com/*"
             ],
             "js": [
-                "content.js"
+                "shared/shared.js",
+                "shared/content.js"
             ]
         }
     ]
