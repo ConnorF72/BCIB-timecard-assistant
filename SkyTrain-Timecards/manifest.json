@@ -1,0 +1,41 @@
+{
+    "manifest_version": 3,
+    "name": "SkyTrain Timecards",
+    "version": "1.0",
+
+    "permissions": [
+        "tabs",
+        "storage"
+    ],
+
+    "host_permissions": [
+        "https://www.fdtpro.com/*"
+    ],
+
+    "action": {
+        "default_popup": "popup/popup.html",
+        "default_icon": {
+            "16": "logos/houle-logo.png",
+            "48": "logos/houle-logo.png",
+            "128": "logos/houle-logo.png"
+        }
+    },
+
+    "icons": {
+        "16": "logos/houle-logo.png",
+        "48": "logos/houle-logo.png",
+        "128": "logos/houle-logo.png"
+    },
+
+    "content_scripts": [
+        {
+            "matches": [
+                "https://www.fdtpro.com/*"
+            ],
+            "js": [
+                "shared/shared.js",
+                "shared/content.js"
+            ]
+        }
+    ]
+}

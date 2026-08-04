@@ -1,0 +1,111 @@
+body {
+	font-family: Arial, sans-serif;
+	text-align: center;
+	padding: 15px;
+}
+
+h1 {
+	text-align: center;
+	font-size: 40px;
+}
+
+p {
+	font-size: 16px;
+	line-height: 2;
+}
+
+button {
+	display: block;
+	font-weight: bold;
+	font-size: 16px;
+}
+
+#dayshift-btn {
+	width: 250px;
+	padding: 20px;
+	margin: 10px auto;
+	margin-top: 60px;
+}
+
+#afternoon-btn {
+	width: 250px;
+	padding: 20px;
+	margin: 10px auto;
+	margin-top: 60px;
+}
+
+#sickdays-btn {
+	width: 250px;
+	padding: 20px;
+	margin: 10px auto;
+	margin-top: 60px;
+}
+
+#daysoff-btn {
+	width: 250px;
+	padding: 20px;
+	margin: 10px auto;
+	margin-top: 60px;
+}
+
+#settings-btn {
+	width: 250px;
+	padding: 20px;
+	margin: 10px auto;
+	margin-top: 60px;
+}
+
+#submit-day-btn {
+	margin-top: 10px;
+	margin-left: 72px;
+}
+
+#submit-afternoon-btn {
+	margin-top: 10px;
+	margin-left: 72px;
+}
+
+#add-nicknames-btn {
+	margin-top: 10px;
+	margin-left: 72px;
+}
+
+#back-btn {
+	margin-top: 10px;
+	margin-left: 72px;
+}
+
+
+#nickname-map {
+    font-size: 18px;
+    font-family: Consolas, monospace;
+    line-height: 1.6;
+    padding: 10px;
+}
+
+textarea {
+	width: 80%;
+	height: 300px;
+}
+
+.timecard-form {
+	width: 800px;
+	margin: 0 auto;
+}
+
+.nickname-map {
+	width: 800px;
+	margin: 0 auto;
+}
+
+.logo-container {
+	width: auto;
+	margin-top: 65px;
+}
+
+.bcib-logo {
+	height: 100px;
+}
+.houle-logo {
+	height: 100px;
+}
