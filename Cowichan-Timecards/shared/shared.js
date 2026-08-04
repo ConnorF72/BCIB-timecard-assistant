@@ -1,15 +1,4 @@
-// Shared helpers used across popup pages (timecards, sickdays, daysoff,
-// settings) and the content script that runs on fdtpro.com.
-//
-// This is loaded as a plain classic script (no import/export) so it can be
-// dropped in via a <script> tag before each page's own script, and via the
-// content_scripts array in manifest.json before content.js. Every function
-// here becomes a global, exactly like the old duplicated copies did.
-
-/**
- * Parses the "nickname = actual name" text saved on the Settings page into
- * a lookup object, e.g. { mike: "michael" }.
- */
+// shared functions
 function parseNicknameMap(text) {
     const map = {};
 
@@ -38,9 +27,8 @@ async function getNicknameMap() {
 }
 
 /**
- * Normalizes a raw name (from pasted pivot data, or read off the FDT Pro
- * page) down to a "first last" key, applying the nickname map to the first
- * name so e.g. "Mike Smith" and "Michael Smith" match.
+ * Normalizes a raw name down to a "first last" key, applying the nickname map to the first
+ * name e.g. "John Doe," "Jon Doe," and "Jonathan Doe" match.
  */
 function normalizeName(str, nicknameMap) {
     const cleaned = str
