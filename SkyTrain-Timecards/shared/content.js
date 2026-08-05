@@ -1,4 +1,3 @@
-
 const SICK_START_TIME = "7:00";
 const START_TIME_DAY = "06:30";
 const START_TIME_AFTERNOON = "13:30";
@@ -78,6 +77,8 @@ async function runAfternoonShiftAutomation(pivotHours) {
 }
 
 async function runDayShiftAutomation(pivotHours) {
+    const zeroHourEmployees = [];
+
     const nicknameMap = await getNicknameMap();
 
     console.log("Starting automation...");
@@ -99,6 +100,10 @@ async function runDayShiftAutomation(pivotHours) {
             return;
         }
 
+	  if (pivotHours[employeeKey] === 0) {
+		zeroHourEmployees.push(`${employeeName}`);
+	  }
+
         if (startInput.value || endInput.value) {
             console.log(`Skipping ${employeeKey} (already populated)`);
             return;
@@ -116,6 +121,10 @@ async function runDayShiftAutomation(pivotHours) {
         endInput.dispatchEvent(new Event("input", { bubbles: true }));
         endInput.dispatchEvent(new Event("change", { bubbles: true }));
     });
+
+    if (zeroHourEmployees.length > 0) {
+         prompt("The following employees have 0 hours, check their notes:", zeroHourEmployees.join("\n"));
+    }
 
     console.log("Timesheet auto-fill complete.");
 }
